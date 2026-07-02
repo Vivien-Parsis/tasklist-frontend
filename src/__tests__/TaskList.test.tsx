@@ -22,38 +22,119 @@ const mockTasks: Task[] = [
 	},
 ];
 
+// Default handlers, overridable per test.
+const defaultProps = {
+	onToggle: vi.fn(),
+	onDelete: vi.fn(),
+	onEdit: vi.fn(),
+};
+
 describe('TaskList', () => {
 	it('shows loading state', () => {
 		render(
-			<TaskList
-				tasks={[]}
-				loading={true}
-				error={null}
-				onToggle={vi.fn()}
-				onDelete={vi.fn()}
-				onEdit={vi.fn()}
-			/>
+			<TaskList tasks={[]} loading={true} error={null} {...defaultProps} />,
 		);
+
 		expect(screen.getByTestId('loading')).toBeInTheDocument();
 		expect(screen.getByText('Chargement des tâches...')).toBeInTheDocument();
 	});
 
-	it('renders list of tasks', () => {
+	it('shows error state when an error is provided', () => {
+		render(
+			<TaskList
+				tasks={[]}
+				loading={false}
+				error="Connexion impossible"
+				{...defaultProps}
+			/>,
+		);
+
+		expect(screen.getByTestId('error')).toBeInTheDocument();
+		expect(
+			screen.getByText('Erreur : Connexion impossible'),
+		).toBeInTheDocument();
+	});
+
+	it('prioritizes loading over error', () => {
+		render(
+			<TaskList
+				tasks={[]}
+				loading={true}
+				error="Connexion impossible"
+				{...defaultProps}
+			/>,
+		);
+
+		expect(screen.getByTestId('loading')).toBeInTheDocument();
+		expect(screen.queryByTestId('error')).not.toBeInTheDocument();
+	});
+
+	it('shows empty state when there are no tasks', () => {
+		render(
+			<TaskList tasks={[]} loading={false} error={null} {...defaultProps} />,
+		);
+
+		expect(screen.getByTestId('empty')).toBeInTheDocument();
+		expect(screen.getByText('Aucune tâche')).toBeInTheDocument();
+		expect(
+			screen.getByText('Commencez par ajouter votre première tâche !'),
+		).toBeInTheDocument();
+	});
+
+	it('renders list of tasks with plural counts', () => {
 		render(
 			<TaskList
 				tasks={mockTasks}
 				loading={false}
 				error={null}
-				onToggle={vi.fn()}
-				onDelete={vi.fn()}
-				onEdit={vi.fn()}
-			/>
+				{...defaultProps}
+			/>,
 		);
+
 		expect(screen.getByTestId('task-list')).toBeInTheDocument();
 		expect(screen.getByText('Première tâche')).toBeInTheDocument();
 		expect(screen.getByText('Deuxième tâche')).toBeInTheDocument();
 		expect(screen.getByText('2 tâches')).toBeInTheDocument();
+		expect(screen.getByText('1 terminée')).toBeInTheDocument();
 	});
 
-	// ... TODO: Add more tests
+	it('uses singular labels for a single unfinished task', () => {
+		const single: Task[] = [{ ...mockTasks[0], completed: false }];
+
+		render(
+			<TaskList tasks={single} loading={false} error={null} {...defaultProps} />,
+		);
+
+		expect(screen.getByText('1 tâche')).toBeInTheDocument();
+		expect(screen.getByText('0 terminée')).toBeInTheDocument();
+	});
+
+	it('pluralizes the completed count when several tasks are done', () => {
+		const allDone: Task[] = [
+			{ ...mockTasks[0], completed: true },
+			{ ...mockTasks[1], completed: true },
+		];
+
+		render(
+			<TaskList tasks={allDone} loading={false} error={null} {...defaultProps} />,
+		);
+
+		expect(screen.getByText('2 tâches')).toBeInTheDocument();
+		expect(screen.getByText('2 terminées')).toBeInTheDocument();
+	});
+
+	it('renders one TaskItem wrapper per task', () => {
+		const { container } = render(
+			<TaskList
+				tasks={mockTasks}
+				loading={false}
+				error={null}
+				{...defaultProps}
+			/>,
+		);
+
+		expect(container.querySelectorAll('.task-item-wrapper')).toHaveLength(
+			mockTasks.length,
+		);
+	});
 });
