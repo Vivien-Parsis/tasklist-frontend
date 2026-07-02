@@ -90,7 +90,8 @@ pipeline {
         sh '''
           mkdir -p security
           trivy image --no-progress \
-            --format cyclonedx --output security/sbom-cyclonedx.json \
+                    --format spdx-json \
+                    --output security/sbom-spdx.json \
             $DOCKERHUB_USR/$IMAGE_NAME:$BUILD_NUMBER
         '''
       }
